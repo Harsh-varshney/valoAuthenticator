@@ -1,0 +1,130 @@
+import React, { FC, memo, useCallback, useEffect, useState } from 'react';
+
+import { Trans, t } from '@lingui/macro';
+import { FlashList } from '@shopify/flash-list';
+import { Dimensions, StyleSheet, View, ViewToken } from 'react-native';
+import { TextInput } from 'react-native-paper';
+import { DEFAULT_TOTP_PERIOD } from '../constants/app';
+import colors from '../constants/colors';
+import { useTimer30 } from '../hooks/useTimer30';
+import Site from '../models/Site';
+import Text from '../ui/Text';
+import SiteInfo from './SiteInfo';
+import { NoSitesIcon } from '../icons/NoSites';
+
+type SitesListProps = {
+  sites: Site[];
+  deleteSite: (site: Site) => void;
+};
+
+const SitesList: FC<SitesListProps> = ({ sites, deleteSite }) => {
+  const [search, setSearch] = useState<string>();
+  const [filteredSites, setFilteredSites] = useState(sites);
+  const [visibleItems, setVisibleItems] = useState<string[]>([]);
+  const timer30 = useTimer30(DEFAULT_TOTP_PERIOD);
+
+  useEffect(() => {
+    const regEx = new RegExp(search || '', 'i');
+    setFilteredSites(
+      !search
+        ? sites
+        : sites.filter(
+            site => site.label.match(regEx) || site.issuer?.match(regEx),
+          ),
+    );
+  }, [search, sites]);
+
+  const onViewableItemsChanged = useCallback(
+    ({
+      viewableItems,
+    }: {
+      viewableItems: ViewToken[];
+      changed: ViewToken[];
+    }) => {
+      setVisibleItems((prevIntes: string[]) => {
+        return viewableItems.map(token => token.item.label);
+      });
+    },
+    [],
+  );
+
+  if (!sites.length) {
+    return (
+      <View style={styles.wrapperNoResults}>
+        <Text size="bodyLarge" numberOfLines={2}>
+          <Trans>Everything is prepared for you to add your sites</Trans>
+        </Text>
+        <NoSitesIcon
+          width={Dimensions.get('screen').width - 48}
+          height={Dimensions.get('screen').width - 48}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <View style={styles.wrapper}>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          right={<TextInput.Icon icon="magnify" />}
+          placeholder={t`Search...`}
+          mode="outlined"
+          theme={{
+            colors: {
+              background: colors.white,
+            },
+          }}
+          outlineColor={colors.medium}
+          placeholderTextColor={colors.medium}
+        />
+      </View>
+      {!!sites.length && !filteredSites.length && (
+        <Text>
+          <Trans>No results matching your search</Trans>
+        </Text>
+      )}
+      <View style={styles.scrollView}>
+        <FlashList
+          data={filteredSites}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => {
+            return (
+              <SiteInfo
+                site={item}
+                timer={timer30}
+                visible={visibleItems.includes(item.label)}
+                deleteSite={deleteSite}
+              />
+            );
+          }}
+          onViewableItemsChanged={onViewableItemsChanged}
+          estimatedItemSize={90}
+          extraData={{ timer30, visibleItems }}
+        />
+      </View>
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  wrapper: {
+    marginBottom: 32,
+  },
+  wrapperNoResults: {
+    marginTop: 32,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+    position: 'absolute',
+  },
+  scrollView: {
+    marginBottom: 32,
+    width: '100%',
+    flex: 1,
+  },
+});
+
+export default memo(SitesList);
