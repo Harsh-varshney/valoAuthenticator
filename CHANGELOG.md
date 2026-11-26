@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2026-11-26)
+
+
+### Features
+
+* initial ValoAuthenticator release ([98d6f75](https://github.com/Harsh-varshney/valoAuthenticator/commit/98d6f750ff78afdd91276c25a4d73f08b0d10f56))
+
 ## [1.12.0](https://github.com/displaynone/shield-authenticator/compare/v1.11.1...v1.12.0) (2023-04-29)
 
 
